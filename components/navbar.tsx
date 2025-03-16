@@ -18,7 +18,7 @@ export function Navbar() {
 
   const navItems = [
     { name: "Home", href: "/" },
-    { name: "AI Business Validator", href: "/validator" },
+    { name: "AI Business Validator", href: "/ai-business-validator" },
     { name: "Mentorship", href: "/mentorship" },
     { name: "Funding", href: "/funding" },
     { name: "Startup Roadmap", href: "/roadmap" },
