@@ -30,26 +30,84 @@ export function AiQaSection() {
   const [question, setQuestion] = useState("")
   const [isAsking, setIsAsking] = useState(false)
   const [conversation, setConversation] = useState([])
+  
+  // Function to call Gemini API
+  const callGeminiApi = async (userQuestion) => {
+    try {
+      // Use environment variable for API key
+      const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+      
+      if (!apiKey) {
+        throw new Error("API key not found in environment variables");
+      }
+      
+      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: `You are a helpful AI assistant specialized in startup advice. 
+                  Provide concise, actionable answers to the following startup-related question: ${userQuestion}
+                  Include relevant statistics or best practices when applicable. Keep your response focused and under 150 words.`
+                }
+              ]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.7,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 1024,
+          }
+        })
+      })
 
-  const handleSubmit = (e) => {
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`)
+      }
+
+      const data = await response.json()
+      return data.candidates[0].content.parts[0].text
+    } catch (error) {
+      console.error("Error calling Gemini API:", error)
+      return "Sorry, I encountered an error processing your question. Please check your API key in the environment variables or try again later."
+    }
+  }
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (!question.trim()) return
 
-    setConversation([...conversation, { role: "user", content: question }])
+    // Add user message to conversation
+    const updatedConversation = [...conversation, { role: "user", content: question }]
+    setConversation(updatedConversation)
     setIsAsking(true)
-
-    setTimeout(() => {
+    
+    try {
+      // Get response from Gemini API
+      const aiResponse = await callGeminiApi(question)
+      
+      // Add AI response to conversation
       setConversation([
-        ...conversation,
-        { role: "user", content: question },
-        {
-          role: "assistant",
-          content: `Great question! When considering "${question}", it's important to evaluate multiple perspectives. Our AI model suggests starting with fundamental research, followed by direct engagement with stakeholders. Studies show that startups that engage their target audience early have a 40% higher success rate. Would you like specific case studies or actionable steps?`,
-        },
+        ...updatedConversation,
+        { role: "assistant", content: aiResponse }
       ])
+    } catch (error) {
+      // Handle error
+      setConversation([
+        ...updatedConversation,
+        { role: "assistant", content: "Sorry, I encountered an error. Please check that the NEXT_PUBLIC_GEMINI_API_KEY environment variable is set correctly." }
+      ])
+    } finally {
       setIsAsking(false)
       setQuestion("")
-    }, 1500)
+    }
   }
 
   return (
@@ -62,7 +120,7 @@ export function AiQaSection() {
             </span>
           </h2>
           <p className="text-gray-300 mt-2">
-            Get instant answers to your startup questions from our AI assistant, trained on insights from successful founders and investors.
+            Get instant answers to your startup questions from our AI assistant, powered by Google's Gemini API.
           </p>
         </div>
 
@@ -117,9 +175,19 @@ export function AiQaSection() {
                             : "bg-[#1a2942] text-white rounded-tl-none"
                         }`}>
                           {message.content}
+                          {message.role === "assistant" && isAsking && index === conversation.length - 1 && (
+                            <span className="inline-block animate-pulse">...</span>
+                          )}
                         </div>
                       </div>
                     ))
+                  )}
+                  {isAsking && conversation.length === 0 && (
+                    <div className="flex justify-start">
+                      <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-[#1a2942] text-white rounded-tl-none">
+                        <span className="inline-block animate-pulse">Thinking...</span>
+                      </div>
+                    </div>
                   )}
                 </div>
                 <form onSubmit={handleSubmit} className="flex items-center space-x-2">
@@ -130,7 +198,11 @@ export function AiQaSection() {
                     onChange={(e) => setQuestion(e.target.value)}
                     className="bg-[#1a2942] border-[#2a3a5a] focus:border-[#00f5d4] focus:ring-1 focus:ring-[#00f5d4] text-white"
                   />
-                  <Button type="submit" disabled={!question.trim() || isAsking} className="bg-[#00f5d4] hover:bg-[#00f5d4]/80 text-black">
+                  <Button 
+                    type="submit" 
+                    disabled={!question.trim() || isAsking} 
+                    className="bg-[#00f5d4] hover:bg-[#00f5d4]/80 text-black"
+                  >
                     <Send className="h-5 w-5" />
                   </Button>
                 </form>
