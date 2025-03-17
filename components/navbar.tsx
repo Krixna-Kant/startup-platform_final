@@ -20,8 +20,8 @@ export function Navbar() {
     { name: "Home", href: "/" },
     { name: "AI Business Validator", href: "/ai-business-validator" },
     { name: "Mentorship", href: "/mentorship" },
-    { name: "Funding", href: "/funding" },
-    { name: "Startup Roadmap", href: "/roadmap" },
+    { name: "Funding", href: "/" },
+    { name: "Startup Roadmap", href: "/" },
     { name: "Q&A", href: "/qa" },
     { name: "Trending News", href: "/news" },
   ]
